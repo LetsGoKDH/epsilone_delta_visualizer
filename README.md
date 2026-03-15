@@ -2,6 +2,12 @@
 
 미적분학의 연속성과 균등연속성을 시각화하는 도구입니다.
 
+## 접속
+
+- **자동 감지**: https://letsgokdh.github.io/epsilone_delta_visualizer/
+- **PC 접속**: https://letsgokdh.github.io/epsilone_delta_visualizer/desktop.html
+- **모바일 접속**: https://letsgokdh.github.io/epsilone_delta_visualizer/mobile.html
+
 ## 사용법
 
 ### 기본 조작
