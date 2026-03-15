@@ -842,54 +842,10 @@ function render() {
     if(y0+eps<=vr.yMax){ctx.beginPath();ctx.moveTo(ML,ty(y0+eps,vr,H));ctx.lineTo(W-MR,ty(y0+eps,vr,H));ctx.stroke();}
     if(y0-eps>=vr.yMin){ctx.beginPath();ctx.moveTo(ML,ty(y0-eps,vr,H));ctx.lineTo(W-MR,ty(y0-eps,vr,H));ctx.stroke();}
     ctx.setLineDash([]);
-    // Draw global delta_min first (if uniform continuous)
-    const globalDmin = computeGlobalDeltaMin(eps, vr);
-    if (globalDmin > 0 && y0 !== null) {
-      const gxL = tx(Math.max(x0 - globalDmin, vr.xMin), vr, W);
-      const gxR = tx(Math.min(x0 + globalDmin, vr.xMax), vr, W);
-      ctx.fillStyle = 'rgba(78,201,160,0.08)';
-      ctx.fillRect(gxL, MT, gxR - gxL, H - MT - MB);
-      ctx.strokeStyle = 'rgba(78,201,160,0.5)';
-      ctx.lineWidth = 1;
-      ctx.setLineDash([3, 3]);
-      ctx.beginPath(); ctx.moveTo(gxL, MT); ctx.lineTo(gxL, H - MB); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(gxR, MT); ctx.lineTo(gxR, H - MB); ctx.stroke();
-      ctx.setLineDash([]);
-    }
 
-    // Then draw current delta(x0) on top
-    // Draw global delta_min first (if uniform continuous)
-    const globalDmin = computeGlobalDeltaMin(eps, vr);
-    if (globalDmin > 0 && y0 !== null) {
-      const gxL = tx(Math.max(x0 - globalDmin, vr.xMin), vr, W);
-      const gxR = tx(Math.min(x0 + globalDmin, vr.xMax), vr, W);
-      ctx.fillStyle = 'rgba(78,201,160,0.08)';
-      ctx.fillRect(gxL, MT, gxR - gxL, H - MT - MB);
-      ctx.strokeStyle = 'rgba(78,201,160,0.5)';
-      ctx.lineWidth = 1;
-      ctx.setLineDash([3, 3]);
-      ctx.beginPath(); ctx.moveTo(gxL, MT); ctx.lineTo(gxL, H - MB); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(gxR, MT); ctx.lineTo(gxR, H - MB); ctx.stroke();
-      ctx.setLineDash([]);
-    }
 
-    // Then draw current delta(x0) on top
-    // Draw global delta_min first (if uniform continuous)
-    const globalDmin = computeGlobalDeltaMin(eps, vr);
-    if (globalDmin > 0 && y0 !== null) {
-      const gxL = tx(Math.max(x0 - globalDmin, vr.xMin), vr, W);
-      const gxR = tx(Math.min(x0 + globalDmin, vr.xMax), vr, W);
-      ctx.fillStyle = 'rgba(78,201,160,0.08)';
-      ctx.fillRect(gxL, MT, gxR - gxL, H - MT - MB);
-      ctx.strokeStyle = 'rgba(78,201,160,0.5)';
-      ctx.lineWidth = 1;
-      ctx.setLineDash([3, 3]);
-      ctx.beginPath(); ctx.moveTo(gxL, MT); ctx.lineTo(gxL, H - MB); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(gxR, MT); ctx.lineTo(gxR, H - MB); ctx.stroke();
-      ctx.setLineDash([]);
-    }
 
-    // Then draw current delta(x0) on top
+
     // Draw global delta_min first (if uniform continuous)
     const globalDmin = computeGlobalDeltaMin(eps, vr);
     if (globalDmin > 0 && y0 !== null) {
