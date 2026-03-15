@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ε-δ 탐색기 (Desktop)</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.11.1/math.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Noto+Sans+KR:wght@400;500&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f0f0d;--bg2:#1a1a17;--bg3:#242420;
+  --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.15);
+  --text:#e8e6de;--text2:#9c9a92;--text3:#5f5e5a;
+  --purple:#9b8fe8;--purple-dim:rgba(155,143,232,0.15);
+  --blue:#5ba4e8;
+  --coral:#e87a5b;--coral-dim:rgba(232,122,91,0.15);
+  --teal:#4ec9a0;--teal-dim:rgba(78,201,160,0.12);
+  --amber:#e8c45b;
+  --mono:'JetBrains Mono',monospace;
+  --sans:'Noto Sans KR','Helvetica Neue',sans-serif;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;display:flex;flex-direction:column}
+header{padding:18px 24px 14px;border-bottom:1px solid var(--border);display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;justify-content:space-between}
+.header-left{display:flex;align-items:baseline;gap:16px}
+.title{font-family:var(--mono);font-size:17px;font-weight:500;letter-spacing:.02em}
+.subtitle{font-size:13px;color:var(--text3);font-family:var(--mono)}
+.version-badge{font-family:var(--mono);font-size:10px;padding:3px 8px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--text3)}
+.main{display:flex;flex:1;overflow:hidden}
+.sidebar{width:320px;flex-shrink:0;border-right:1px solid var(--border);padding:16px;display:flex;flex-direction:column;gap:16px;overflow-y:auto}
+.graph-area{flex:1;display:flex;flex-direction:column;padding:16px;gap:14px;min-width:0}
+.sec-label{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--text3);text-transform:uppercase;margin-bottom:8px}
+.func-row{display:flex;align-items:center;gap:10px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:10px 14px;transition:border-color .15s}
+.func-row:focus-within{border-color:var(--purple)}
+.fx-label{font-family:var(--mono);font-size:15px;color:var(--text2);white-space:nowrap}
+#funcInput{flex:1;background:none;border:none;outline:none;color:var(--text);font-family:var(--mono);font-size:16px;font-weight:500;min-width:0}
+#funcInput::placeholder{color:var(--text3)}
+#error{font-family:var(--mono);font-size:11px;color:var(--coral);min-height:13px;margin-top:3px}
+.presets{display:flex;flex-wrap:wrap;gap:5px}
+.pbtn{font-family:var(--mono);font-size:11px;padding:5px 10px;border:1px solid var(--border);border-radius:5px;background:var(--bg3);color:var(--text2);cursor:pointer;transition:all .15s}
+.pbtn:hover{border-color:var(--border2);color:var(--text);transform:translateY(-1px)}
+.pbtn.active{background:var(--purple-dim);border-color:var(--purple);color:var(--purple)}
+/* domain mode */
+.domain-mode-row{display:flex;gap:6px;margin-bottom:10px}
+.dmbtn{flex:1;font-family:var(--mono);font-size:11px;padding:7px 5px;text-align:center;border:1px solid var(--border);border-radius:6px;background:var(--bg3);color:var(--text2);cursor:pointer;transition:all .15s}
+.dmbtn:hover{border-color:var(--border2);color:var(--text);transform:translateY(-1px)}
+.dmbtn.active{background:var(--purple-dim);border-color:var(--purple);color:var(--purple)}
+/* interval */
+.interval-wrap{display:flex;align-items:stretch;gap:7px}
+.brk-btn{font-family:var(--mono);font-size:18px;font-weight:500;width:30px;display:flex;align-items:center;justify-content:center;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text3);cursor:pointer;transition:all .15s;flex-shrink:0;padding-bottom:1px}
+.brk-btn:hover{border-color:var(--border2)}
+.brk-btn.closed{background:var(--purple-dim);border-color:var(--purple);color:var(--purple)}
+.brk-btn[disabled]{opacity:.25;cursor:default;pointer-events:none}
+.inf-label{font-family:var(--mono);font-size:13px;color:var(--text3);display:flex;align-items:center;justify-content:center;flex:1;letter-spacing:.04em}
+.range-pair{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.range-item{display:flex;flex-direction:column;gap:4px}
+.range-item label{font-family:var(--mono);font-size:10px;color:var(--text3)}
+.range-item input[type=number]{background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:13px;padding:6px 8px;width:100%;outline:none;transition:border-color .15s}
+.range-item input[type=number]:focus{border-color:var(--purple)}
+.range-item input[type=number]:disabled{opacity:.3;cursor:default}
+.interval-hint{font-family:var(--mono);font-size:10px;color:var(--text3);margin-top:5px}
+.yrange-row{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:9px}
+.view-sep{font-family:var(--mono);font-size:10px;color:var(--text3);margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
+.view-range-row{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px}
+/* sliders */
+.slider-block{display:flex;flex-direction:column;gap:12px}
+.slider-row{display:flex;flex-direction:column;gap:7px}
+.slider-header{display:flex;justify-content:space-between;align-items:center}
+.slider-name{font-family:var(--mono);font-size:13px}
+.slider-val{font-family:var(--mono);font-size:13px;font-weight:500}
+input[type=range]{-webkit-appearance:none;width:100%;height:5px;border-radius:2px;background:var(--bg3);outline:none;cursor:pointer;border:1px solid var(--border)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--text);cursor:pointer;transition:transform .1s}
+input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.25)}
+input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--text);cursor:pointer;border:none}
+#sx0::-webkit-slider-thumb{background:var(--purple)}
+#sx0::-moz-range-thumb{background:var(--purple)}
+#seps::-webkit-slider-thumb{background:var(--blue)}
+#seps::-moz-range-thumb{background:var(--blue)}
+/* stats */
+.stats{display:flex;flex-direction:column;gap:6px}
+.stat-row{display:flex;justify-content:space-between;align-items:center;padding:7px 11px;border-radius:6px;background:var(--bg3);border:1px solid var(--border)}
+.stat-key{font-family:var(--mono);font-size:11px;color:var(--text2)}
+.stat-val{font-family:var(--mono);font-size:13px;font-weight:500}
+/* verdict */
+.verdict-section{display:flex;flex-direction:column;gap:7px}
+.vcard{padding:10px 13px;border-radius:8px;border:1px solid transparent;font-size:13px;line-height:1.65}
+.vcard .vcard-title{font-family:var(--mono);font-size:10px;letter-spacing:.09em;text-transform:uppercase;opacity:.65;margin-bottom:4px}
+.vc-ok    {background:var(--teal-dim);border-color:rgba(78,201,160,0.25);color:var(--teal)}
+.vc-fail  {background:var(--coral-dim);border-color:rgba(232,122,91,0.25);color:var(--coral)}
+.vc-warn  {background:rgba(232,196,91,0.08);border-color:rgba(232,196,91,0.2);color:var(--amber)}
+.vc-neutral{background:var(--bg3);border-color:var(--border);color:var(--text3)}
+.canvas-wrapper{flex:1;position:relative;border:1px solid var(--border);border-radius:10px;overflow:hidden;min-height:320px}
+canvas#graph{display:block;width:100%;height:100%;position:absolute;top:0;left:0}
+.legend{display:flex;gap:16px;flex-wrap:wrap}
+.leg-item{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--text3)}
+.leg-swatch{width:15px;height:10px;border-radius:2px;display:inline-block;border:1px solid transparent}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <span class="title">ε-δ Explorer</span>
+    <span class="subtitle">연속 vs 균등연속 시각화</span>
+  </div>
+  <span class="version-badge">Desktop Version</span>
+</header>
+
+<div class="main">
+  <div class="sidebar">
+
+    <div>
+      <div class="sec-label">함수 입력</div>
+      <div class="func-row">
+        <span class="fx-label">f(x) =</span>
+        <input id="funcInput" type="text" value="1/x" autocomplete="off" spellcheck="false" placeholder="sin(x), 1/x, floor(x) …">
+      </div>
+      <div id="error"></div>
+    </div>
+
+    <div>
+      <div class="sec-label">프리셋</div>
+      <div class="presets">
+        <button class="pbtn active" onclick="setPreset('1/x',this)">1/x</button>
+        <button class="pbtn" onclick="setPreset('x^2',this)">x²</button>
+        <button class="pbtn" onclick="setPreset('sin(x)',this)">sin(x)</button>
+        <button class="pbtn" onclick="setPreset('sqrt(x)',this)">√x</button>
+        <button class="pbtn" onclick="setPreset('x^3',this)">x³</button>
+        <button class="pbtn" onclick="setPreset('tan(x)',this)">tan(x)</button>
+        <button class="pbtn" onclick="setPreset('exp(x)',this)">eˣ</button>
+        <button class="pbtn" onclick="setPreset('log(x)',this)">ln(x)</button>
+        <button class="pbtn" onclick="setPreset('abs(x)',this)">|x|</button>
+        <button class="pbtn" onclick="setPreset('floor(x)',this)">⌊x⌋</button>
+        <button class="pbtn" onclick="setPreset('sin(1/x)',this)">sin(1/x)</button>
+        <button class="pbtn" onclick="setPreset('x*sin(1/x)',this)">x·sin(1/x)</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="sec-label">정의역 / 구간</div>
+
+      <div class="domain-mode-row">
+        <button class="dmbtn active" id="dmBounded" onclick="setDomainMode('bounded')">구간 [a, b]</button>
+        <button class="dmbtn"        id="dmReal"    onclick="setDomainMode('real')">ℝ 전체</button>
+      </div>
+
+      <!-- bounded -->
+      <div id="boundedControls">
+        <div class="interval-wrap">
+          <button class="brk-btn closed" id="btnLeft"  onclick="toggleLeft()">[</button>
+          <div class="range-pair">
+            <div class="range-item"><label>x min</label><input id="xminIn" type="number" value="0.1" step="0.5" oninput="delayedRender()"></div>
+            <div class="range-item"><label>x max</label><input id="xmaxIn" type="number" value="4"   step="0.5" oninput="delayedRender()"></div>
+          </div>
+          <button class="brk-btn closed" id="btnRight" onclick="toggleRight()">]</button>
+        </div>
+        <div class="interval-hint" id="intervalHint">구간: [0.1, 4]</div>
+      </div>
+
+      <!-- real -->
+      <div id="realControls" style="display:none">
+        <div class="interval-wrap">
+          <button class="brk-btn" disabled>(</button>
+          <div class="inf-label">−∞ &nbsp;,&nbsp; +∞</div>
+          <button class="brk-btn" disabled>)</button>
+        </div>
+        <div class="interval-hint">정의역: ℝ = (−∞, +∞)</div>
+        <div class="view-sep">그래프 보기 범위 (x)</div>
+        <div class="view-range-row">
+          <div class="range-item"><label>view min</label><input id="vxminIn" type="number" value="-10" step="1" oninput="delayedRender()"></div>
+          <div class="range-item"><label>view max</label><input id="vxmaxIn" type="number" value="10"  step="1" oninput="delayedRender()"></div>
+        </div>
+      </div>
+
+      <!-- y range always -->
+      <div class="yrange-row">
+        <div class="range-item"><label>y min</label><input id="yminIn" type="number" value="-1" step="1" oninput="delayedRender()"></div>
+        <div class="range-item"><label>y max</label><input id="ymaxIn" type="number" value="8"  step="1" oninput="delayedRender()"></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="sec-label">슬라이더</div>
+      <div class="slider-block">
+        <div class="slider-row">
+          <div class="slider-header">
+            <span class="slider-name" style="color:var(--purple)">x₀ (기준점)</span>
+            <span class="slider-val"  id="lx0" style="color:var(--purple)">—</span>
+          </div>
+          <input type="range" id="sx0" min="0" max="1000" value="500" oninput="render()">
+        </div>
+        <div class="slider-row">
+          <div class="slider-header">
+            <span class="slider-name" style="color:var(--blue)">ε (허용 오차)</span>
+            <span class="slider-val"  id="leps" style="color:var(--blue)">—</span>
+          </div>
+          <input type="range" id="seps" min="0" max="1000" value="200" oninput="render()">
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="sec-label">수치 결과</div>
+      <div class="stats">
+        <div class="stat-row"><span class="stat-key">f(x₀)</span>         <span class="stat-val" id="vfx0"  style="color:var(--purple)">—</span></div>
+        <div class="stat-row"><span class="stat-key">ε</span>              <span class="stat-val" id="veps"  style="color:var(--blue)">—</span></div>
+        <div class="stat-row"><span class="stat-key">δ(x₀)</span>          <span class="stat-val" id="vdelta" style="color:var(--coral)">—</span></div>
+        <div class="stat-row"><span class="stat-key">inf δ (전체 탐색)</span><span class="stat-val" id="vdmin" style="color:var(--amber)">—</span></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="sec-label">판정</div>
+      <div class="verdict-section">
+        <div class="vcard vc-neutral" id="vContCard">
+          <div class="vcard-title">연속성 (Continuity)</div>
+          <div id="vContBody">함수를 입력하세요.</div>
+        </div>
+        <div class="vcard vc-neutral" id="vUniCard">
+          <div class="vcard-title">균등연속성 (Uniform Continuity)</div>
+          <div id="vUniBody">—</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="graph-area">
+    <div class="canvas-wrapper"><canvas id="graph"></canvas></div>
+    <div class="legend">
+      <div class="leg-item"><span class="leg-swatch" style="background:rgba(155,143,232,0.6)"></span>f(x)</div>
+      <div class="leg-item"><span class="leg-swatch" style="background:rgba(91,164,232,0.22);border-color:rgba(91,164,232,0.5)"></span>ε 범위</div>
+      <div class="leg-item"><span class="leg-swatch" style="background:rgba(232,122,91,0.22);border-color:rgba(232,122,91,0.5)"></span>δ 범위</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('graph');
+const ctx    = canvas.getContext('2d');
+const DPR    = window.devicePixelRatio || 1;
+let compiledFn = null;
+let leftOpen = false, rightOpen = false;
+let domainMode = 'bounded';
+const ML=54, MR=18, MT=18, MB=32;
+
+/* ─── safe eval ─── */
+function safeEval(x) {
+  if (!compiledFn) return null;
+  try {
+    const v = compiledFn.evaluate({x});
+    return (typeof v === 'number' && isFinite(v) && !isNaN(v)) ? v : null;
+  } catch(e){ return null; }
+}
+
+/* ─── domain mode ─── */
+function setDomainMode(mode) {
+  domainMode = mode;
+  document.getElementById('dmBounded').classList.toggle('active', mode==='bounded');
+  document.getElementById('dmReal').classList.toggle('active',    mode==='real');
+  document.getElementById('boundedControls').style.display = mode==='bounded' ? '' : 'none';
+  document.getElementById('realControls').style.display    = mode==='real'    ? '' : 'none';
+  render();
+}
+function isRealMode(){ return domainMode==='real'; }
+
+/* ─── safe DOM read ─── */
+function numVal(id, fallback) {
+  const el = document.getElementById(id);
+  if (!el) return fallback;
+  const v = parseFloat(el.value);
+  return isNaN(v) ? fallback : v;
+}
+
+/* ─── ranges ─── */
+function getViewRange() {
+  if (isRealMode()) return {
+    xMin: numVal('vxminIn',-10), xMax: numVal('vxmaxIn',10),
+    yMin: numVal('yminIn', -8),  yMax: numVal('ymaxIn',  8),
+  };
+  return {
+    xMin: numVal('xminIn', 0),  xMax: numVal('xmaxIn', 4),
+    yMin: numVal('yminIn',-1),  yMax: numVal('ymaxIn',  8),
+  };
+}
+
+function getX0(vr) {
+  const el = document.getElementById('sx0');
+  const t = el ? parseInt(el.value)/1000 : 0.5;
+  let lo = vr.xMin, hi = vr.xMax;
+  if (!isRealMode()) {
+    const m = (vr.xMax-vr.xMin)*0.004;
+    if (leftOpen)  lo += m;
+    if (rightOpen) hi -= m;
+  }
+  return lo + t*(hi-lo);
+}
+
+function getEps() {
+  const el = document.getElementById('seps');
+  const t = el ? parseInt(el.value)/1000 : 0.2;
+  return parseFloat((0.01 * Math.pow(1000, t)).toFixed(4));
+}
+
+/* ─── coord transforms ─── */
+function tx(x,r,W){ return ML+(x-r.xMin)/(r.xMax-r.xMin)*(W-ML-MR); }
+function ty(y,r,H){ return MT+(r.yMax-y)/(r.yMax-r.yMin)*(H-MT-MB); }
+
+/* ─── δ for single x0 (main thread, capped) ─── */
+function computeDelta(x0, eps, vr) {
+  const y0 = safeEval(x0);
+  if (y0 === null) return 0;
+  const real = isRealMode();
+  const scanSpan = real ? Math.max(vr.xMax-vr.xMin,1)*10 : Math.max(vr.xMax-vr.xMin,1);
+  const step = scanSpan/500;
+  const domMin = real ? -1e12 : vr.xMin;
+  const domMax = real ?  1e12 : vr.xMax;
+  let dR = scanSpan, dL = scanSpan;
+  for (let i=1; i<=500; i++) {
+    const xr = x0+i*step;
+    if (xr>domMax) break;
+    const yr = safeEval(xr);
+    if (yr===null || Math.abs(yr-y0)>=eps) { dR=Math.max(0,(i-1)*step); break; }
+  }
+  for (let i=1; i<=500; i++) {
+    const xl = x0-i*step;
+    if (xl<domMin) break;
+    const yl = safeEval(xl);
+    if (yl===null || Math.abs(yl-y0)>=eps) { dL=Math.max(0,(i-1)*step); break; }
+  }
+  return Math.min(dL, dR);
+}
+
+/* ─── continuity check (lean: 200 steps, 25 bisect iters) ─── */
+function checkContinuity(vr) {
+  const lo = isRealMode() ? false : leftOpen;
+  const ro = isRealMode() ? false : rightOpen;
+  const N = 200;
+  const step = (vr.xMax-vr.xMin)/N;
+  const discos = [];
+  if (!lo && !isRealMode() && safeEval(vr.xMin)===null) discos.push({x:vr.xMin,type:'undefined'});
+  if (!ro && !isRealMode() && safeEval(vr.xMax)===null) discos.push({x:vr.xMax,type:'undefined'});
+  let prevX=null, prevY=null;
+  for (let i=0; i<=N; i++) {
+    const x = vr.xMin+i*step;
+    const openBound = !isRealMode() && ((i===0&&lo)||(i===N&&ro));
+    const y = safeEval(x);
+    if (y===null) {
+      if (!openBound && !discos.some(d=>Math.abs(d.x-x)<step*3)) discos.push({x,type:'undefined'});
+      prevX=null; prevY=null; continue;
+    }
+    if (prevY!==null) {
+      const orig = Math.abs(y-prevY);
+      if (orig>1e-4) {
+        let bLo=prevX, bHi=x, bLoY=prevY, bHiY=y, hitNull=null;
+        for (let k=0; k<25; k++) {
+          const mid=(bLo+bHi)/2, mY=safeEval(mid);
+          if (mY===null){hitNull=mid;break;}
+          if (Math.abs(mY-bLoY)>=Math.abs(bHiY-mY)){bHi=mid;bHiY=mY;}
+          else{bLo=mid;bLoY=mY;}
+        }
+        if (hitNull!==null) {
+          if (!discos.some(d=>Math.abs(d.x-hitNull)<step*2)) discos.push({x:hitNull,type:'undefined'});
+        } else {
+          const res=Math.abs(bHiY-bLoY), midX=(bLo+bHi)/2;
+          const nearL = !isRealMode()&&lo&&midX<vr.xMin+step*3;
+          const nearR = !isRealMode()&&ro&&midX>vr.xMax-step*3;
+          if (!nearL&&!nearR&&res/orig>0.25&&!discos.some(d=>Math.abs(d.x-midX)<step*2)) {
+            discos.push({x:midX, type:(bLoY*bHiY<0&&Math.abs(bLoY)>20&&Math.abs(bHiY)>20)?'asymptote':'jump'});
+          }
+        }
+      }
+    }
+    prevX=x; prevY=y;
+  }
+  const merged=[];
+  for (const d of discos) if (!merged.some(m=>Math.abs(m.x-d.x)<step*2)) merged.push(d);
+  return {continuous:merged.length===0, discos:merged};
+}
+
+/* ─── global δ_min (lean: 40 uniform + a few boundary/log samples) ─── */
+function computeGlobalDeltaMin(eps, vr) {
+  const lo = isRealMode() ? false : leftOpen;
+  const ro = isRealMode() ? false : rightOpen;
+  const span = vr.xMax-vr.xMin;
+  const margin = span*0.004;
+  const pts = [];
+  if (isRealMode()) {
+    for (let i=0; i<=40; i++) pts.push(vr.xMin+i*span/40);
+    for (const m of [1,5,30,200,2000]) {
+      pts.push(m*span,-m*span,m*span*0.5,-m*span*0.5);
+    }
+    for (let e=-2; e<=5; e++) { pts.push(Math.pow(10,e),-Math.pow(10,e)); }
+    pts.push(0,0.01,-0.01);
+  } else {
+    const xLo = lo ? vr.xMin+margin : vr.xMin;
+    const xHi = ro ? vr.xMax-margin : vr.xMax;
+    for (let i=0; i<=40; i++) pts.push(xLo+i*(xHi-xLo)/40);
+    for (let k=1; k<=12; k++) {
+      const f = Math.pow(10,-k*0.5)*0.5;
+      if (lo) pts.push(vr.xMin+f*span);
+      if (ro) pts.push(vr.xMax-f*span);
+    }
+  }
+  let dMin = Infinity;
+  for (const x0 of pts) {
+    if (!isRealMode() && (x0<vr.xMin||x0>vr.xMax)) continue;
+    if (safeEval(x0)===null) continue;
+    const d = computeDelta(x0, eps, vr);
+    if (d<dMin) dMin=d;
+  }
+  return isFinite(dMin) ? dMin : 0;
+}
+
+/* ─── interval UI ─── */
+function toggleLeft()  { leftOpen=!leftOpen;  updateBracketUI(); render(); }
+function toggleRight() { rightOpen=!rightOpen; updateBracketUI(); render(); }
+function updateBracketUI() {
+  if (isRealMode()) return;
+  const bL=document.getElementById('btnLeft'), bR=document.getElementById('btnRight');
+  if (!bL||!bR) return;
+  bL.textContent=leftOpen?'(':'['; bR.textContent=rightOpen?')':']';
+  bL.className='brk-btn'+(leftOpen?'':' closed');
+  bR.className='brk-btn'+(rightOpen?'':' closed');
+}
+function updateIntervalHint() {
+  const el=document.getElementById('intervalHint');
+  if (!el) return;
+  const vr=getViewRange();
+  el.textContent='구간: '+(leftOpen?'(':'[')+vr.xMin+', '+vr.xMax+(rightOpen?')':']');
+}
+
+/* ─── verdict (deferred so it never blocks render) ─── */
+function setCard(id, cls, body) {
+  const c=document.getElementById(id+'Card'), b=document.getElementById(id+'Body');
+  if(c) c.className='vcard '+cls;
+  if(b) b.innerHTML=body;
+}
+
+function runVerdict() {
+  if (!compiledFn) {
+    setCard('vCont','vc-neutral','함수를 입력하세요.');
+    setCard('vUni','vc-neutral','—');
+    const vd=document.getElementById('vdmin'); if(vd) vd.textContent='—';
+    return;
+  }
+  const vr  = getViewRange();
+  const eps = getEps();
+  const cont = checkContinuity(vr);
+  const vdmin = document.getElementById('vdmin');
+
+  if (!cont.continuous) {
+    const pts = cont.discos.slice(0,3).map(d=>{
+      const lbl=d.type==='asymptote'?'점근선':d.type==='undefined'?'미정의':'불연속점';
+      return 'x\u2248'+d.x.toFixed(4)+' ('+lbl+')';
+    }).join(', ');
+    const extra = cont.discos.length>3 ? ' 외 '+(cont.discos.length-3)+'곳' : '';
+    setCard('vCont','vc-fail','\u2717 불연속 \u2014 '+pts+extra);
+    setCard('vUni','vc-neutral','<span style="opacity:.5">연속이 아니므로 균등연속 불성립.</span>');
+    if(vdmin) vdmin.textContent='—'; return;
+  }
+
+  setCard('vCont','vc-ok','\u2705 연속 \u2014 주어진 범위에서 f가 연속입니다.');
+
+  if (!isRealMode() && !leftOpen && !rightOpen) {
+    setCard('vUni','vc-ok','\u2705 균등연속 \u2014 닫힌 유계 구간의 연속함수는 균등연속. <em>(Heine-Cantor 정리)</em>');
+    if(vdmin) vdmin.textContent='Heine-Cantor'; return;
+  }
+
+  const dmin = computeGlobalDeltaMin(eps, vr);
+  const fmt = dmin<1e-10?'\u22480':dmin<0.001?dmin.toExponential(2):dmin.toFixed(5);
+  if(vdmin) vdmin.textContent=fmt;
+
+  const refSpan = isRealMode()
+    ? Math.max(Math.abs(vr.xMax),Math.abs(vr.xMin),1)*100
+    : vr.xMax-vr.xMin;
+  const ratio = dmin/Math.max(refSpan,1);
+  const scope = isRealMode() ? ' <em>(\u211d 전체 광역 탐색)</em>' : '';
+
+  if (ratio>2e-3) {
+    setCard('vUni','vc-ok','\u2705 균등연속으로 보임 \u2014 \u03b4_min \u2248 '+fmt+'. 단일 \u03b4가 전 구간에서 작동합니다.'+scope);
+  } else if (ratio>1e-8) {
+    setCard('vUni','vc-warn','\u26a1 경계/무한대 방향에서 \u03b4_min \u2248 '+fmt+'. \u03b5을 더 줄여보거나 범위를 넓혀 확인하세요.'+scope);
+  } else {
+    const dir = isRealMode() ? '|x|\u2192\u221e 방향에서' : '끝점 근방에서';
+    setCard('vUni','vc-fail','\u2717 비균등연속 \u2014 \u03b4_min \u2248 '+fmt+' \u22480. '+dir+' 임의로 작은 \u03b4가 필요합니다.'+scope);
+  }
+}
+
+/* ─── axes ─── */
+function pickStep(s){const r=s/5,m=Math.pow(10,Math.floor(Math.log10(Math.abs(r)))),n=r/m;return n<1.5?m:n<3.5?2*m:n<7.5?5*m:10*m;}
+function fmtN(n){if(n===0)return'0';if(Math.abs(n)<0.01||Math.abs(n)>=1e4)return n.toExponential(1);return+parseFloat(n.toPrecision(4))+'';}
+
+function drawAxes(r,W,H) {
+  ctx.font='10px JetBrains Mono,monospace';
+  ctx.setLineDash([]);
+  const x0px=Math.max(ML,Math.min(W-MR,tx(0,r,W)));
+  const y0px=Math.max(MT,Math.min(H-MB,ty(0,r,H)));
+  const xStep=pickStep(r.xMax-r.xMin), yStep=pickStep(r.yMax-r.yMin);
+  ctx.strokeStyle='#222220'; ctx.lineWidth=0.5;
+  for(let x=Math.ceil(r.xMin/xStep)*xStep; x<=r.xMax; x+=xStep){
+    const px=tx(x,r,W); if(px<ML||px>W-MR) continue;
+    ctx.beginPath();ctx.moveTo(px,MT);ctx.lineTo(px,H-MB);ctx.stroke();
+  }
+  for(let y=Math.ceil(r.yMin/yStep)*yStep; y<=r.yMax; y+=yStep){
+    const py=ty(y,r,H); if(py<MT||py>H-MB) continue;
+    ctx.beginPath();ctx.moveTo(ML,py);ctx.lineTo(W-MR,py);ctx.stroke();
+  }
+  ctx.strokeStyle='#4a4a47'; ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(ML,y0px);ctx.lineTo(W-MR,y0px);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(x0px,MT);ctx.lineTo(x0px,H-MB);ctx.stroke();
+  ctx.fillStyle='#5f5e5a'; ctx.textAlign='center'; ctx.textBaseline='top';
+  for(let x=Math.ceil(r.xMin/xStep)*xStep; x<=r.xMax; x+=xStep){
+    if(Math.abs(x)<xStep*.01) continue;
+    const px=tx(x,r,W); if(px<ML+8||px>W-MR-8) continue;
+    ctx.fillText(fmtN(x),px,y0px+5);
+    ctx.strokeStyle='#4a4a47';ctx.lineWidth=.5;
+    ctx.beginPath();ctx.moveTo(px,y0px-3);ctx.lineTo(px,y0px+3);ctx.stroke();
+  }
+  ctx.textAlign='right'; ctx.textBaseline='middle';
+  for(let y=Math.ceil(r.yMin/yStep)*yStep; y<=r.yMax; y+=yStep){
+    if(Math.abs(y)<yStep*.01) continue;
+    const py=ty(y,r,H); if(py<MT+8||py>H-MB-8) continue;
+    ctx.fillText(fmtN(y),x0px-6,py);
+    ctx.beginPath();ctx.moveTo(x0px-3,py);ctx.lineTo(x0px+3,py);ctx.stroke();
+  }
+  if (!isRealMode()) {
+    const ey=Math.max(MT+4,Math.min(H-MB-4,y0px));
+    [[r.xMin,leftOpen],[r.xMax,rightOpen]].forEach(function(pair){
+      const xv=pair[0], open=pair[1];
+      const px=tx(xv,r,W); if(px<ML-2||px>W-MR+2) return;
+      ctx.strokeStyle='#9b8fe8'; ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.arc(px,ey,5,0,Math.PI*2);
+      if(open){ctx.stroke();}else{ctx.fillStyle='#9b8fe8';ctx.fill();}
+    });
+  } else {
+    ctx.fillStyle='#5f5e5a';
+    ctx.beginPath();ctx.moveTo(W-MR,y0px);ctx.lineTo(W-MR-8,y0px-4);ctx.lineTo(W-MR-8,y0px+4);ctx.closePath();ctx.fill();
+    ctx.beginPath();ctx.moveTo(ML,y0px);ctx.lineTo(ML+8,y0px-4);ctx.lineTo(ML+8,y0px+4);ctx.closePath();ctx.fill();
+    ctx.font='bold 11px JetBrains Mono,monospace';
+    ctx.fillStyle='#5f5e5a'; ctx.textAlign='right'; ctx.textBaseline='bottom';
+    ctx.fillText('\u211d',W-MR-10,y0px-4);
+  }
+}
+
+/* ─── main render ─── */
+function render() {
+  if (!compiledFn) return;
+  const wrapper=document.querySelector('.canvas-wrapper');
+  if (!wrapper||wrapper.clientWidth===0) return;
+  const W=Math.round(wrapper.clientWidth), H=Math.round(wrapper.clientHeight);
+  canvas.width=W*DPR; canvas.height=H*DPR;
+  canvas.style.width=W+'px'; canvas.style.height=H+'px';
+  ctx.scale(DPR,DPR);
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#0f0f0d'; ctx.fillRect(0,0,W,H);
+
+  const vr=getViewRange();
+  const x0=getX0(vr), eps=getEps();
+  const y0=safeEval(x0);
+  const delta=y0!==null?computeDelta(x0,eps,vr):0;
+
+  var lx0El=document.getElementById('lx0');
+  var lepsEl=document.getElementById('leps');
+  var vfx0El=document.getElementById('vfx0');
+  var vepsEl=document.getElementById('veps');
+  var vdeltaEl=document.getElementById('vdelta');
+  if(lx0El)   lx0El.textContent=x0.toFixed(3);
+  if(lepsEl)  lepsEl.textContent=eps.toFixed(3);
+  if(vfx0El)  vfx0El.textContent=y0!==null?y0.toFixed(4):'미정의';
+  if(vepsEl)  vepsEl.textContent=eps.toFixed(4);
+  if(vdeltaEl)vdeltaEl.textContent=delta>0?delta.toFixed(5):(y0===null?'미정의':'0');
+  if(!isRealMode()) updateIntervalHint();
+
+  ctx.save();
+  ctx.beginPath(); ctx.rect(ML,MT,W-ML-MR,H-MT-MB); ctx.clip();
+
+  if (y0!==null) {
+    var yHi=ty(Math.min(y0+eps,vr.yMax),vr,H);
+    var yLo=ty(Math.max(y0-eps,vr.yMin),vr,H);
+    ctx.fillStyle='rgba(91,164,232,0.10)';
+    ctx.fillRect(ML,yHi,W-ML-MR,yLo-yHi);
+    ctx.strokeStyle='rgba(91,164,232,0.5)'; ctx.lineWidth=1; ctx.setLineDash([5,4]);
+    if(y0+eps<=vr.yMax){ctx.beginPath();ctx.moveTo(ML,ty(y0+eps,vr,H));ctx.lineTo(W-MR,ty(y0+eps,vr,H));ctx.stroke();}
+    if(y0-eps>=vr.yMin){ctx.beginPath();ctx.moveTo(ML,ty(y0-eps,vr,H));ctx.lineTo(W-MR,ty(y0-eps,vr,H));ctx.stroke();}
+    ctx.setLineDash([]);
+    if (delta>0) {
+      var xL=tx(Math.max(x0-delta,vr.xMin),vr,W);
+      var xR=tx(Math.min(x0+delta,vr.xMax),vr,W);
+      ctx.fillStyle='rgba(232,122,91,0.13)';
+      ctx.fillRect(xL,MT,xR-xL,H-MT-MB);
+      ctx.strokeStyle='rgba(232,122,91,0.6)'; ctx.lineWidth=1; ctx.setLineDash([5,4]);
+      ctx.beginPath();ctx.moveTo(xL,MT);ctx.lineTo(xL,H-MB);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(xR,MT);ctx.lineTo(xR,H-MB);ctx.stroke();
+      ctx.setLineDash([]);
+    }
+  }
+
+  ctx.strokeStyle='#9b8fe8'; ctx.lineWidth=2; ctx.setLineDash([]);
+  ctx.beginPath();
+  var pen=false, prevYc=null;
+  var ySpan=vr.yMax-vr.yMin;
+  for(var i=0; i<=1000; i++){
+    var cx=vr.xMin+(vr.xMax-vr.xMin)*i/1000;
+    var cy=safeEval(cx);
+    if(cy===null||cy<vr.yMin-ySpan*.15||cy>vr.yMax+ySpan*.15){pen=false;prevYc=null;continue;}
+    if(prevYc!==null&&Math.abs(cy-prevYc)>ySpan*3){pen=false;}
+    var cpx=tx(cx,vr,W), cpy=ty(cy,vr,H);
+    pen?ctx.lineTo(cpx,cpy):ctx.moveTo(cpx,cpy);
+    pen=true; prevYc=cy;
+  }
+  ctx.stroke();
+  ctx.restore();
+  drawAxes(vr,W,H);
+
+  if(y0!==null){
+    var ppx=tx(x0,vr,W), ppy=ty(y0,vr,H);
+    if(ppx>=ML&&ppx<=W-MR&&ppy>=MT&&ppy<=H-MB){
+      ctx.strokeStyle='rgba(155,143,232,0.3)'; ctx.lineWidth=0.8; ctx.setLineDash([3,3]);
+      ctx.beginPath();ctx.moveTo(ppx,MT);ctx.lineTo(ppx,H-MB);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(ML,ppy);ctx.lineTo(W-MR,ppy);ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle='#9b8fe8';
+      ctx.beginPath();ctx.arc(ppx,ppy,5,0,Math.PI*2);ctx.fill();
+      ctx.strokeStyle='#0f0f0d'; ctx.lineWidth=2;
+      ctx.beginPath();ctx.arc(ppx,ppy,5,0,Math.PI*2);ctx.stroke();
+    }
+  }
+  if(delta>0&&y0!==null){
+    var drx=tx(Math.min(x0+delta,vr.xMax),vr,W);
+    ctx.font='500 10px JetBrains Mono,monospace';
+    ctx.fillStyle='rgba(232,122,91,0.85)';
+    ctx.textAlign='left'; ctx.textBaseline='middle';
+    var dtxt='\u03b4='+(delta<0.001?delta.toExponential(2):delta.toFixed(4));
+    if(drx+6+ctx.measureText(dtxt).width<W-MR) ctx.fillText(dtxt,drx+4,H-MB-14);
+  }
+
+  clearTimeout(window._vt);
+  window._vt = setTimeout(runVerdict, 400);
+}
+
+/* ─── presets ─── */
+var PRESETS = {
+  '1/x':        [null,null,-8, 8,  false,false,'real',  -5, 5],
+  'x^2':        [null,null,-2, 16, false,false,'real',  -8, 8],
+  'sin(x)':     [null,null,-1.5,1.5,false,false,'real', -12,12],
+  'sqrt(x)':    [0,  5,  -0.5,3,  false,false,'bounded'],
+  'x^3':        [null,null,-15,15, false,false,'real',  -5, 5],
+  'tan(x)':     [-1.58,1.58,-5,5, true, true, 'bounded'],
+  'exp(x)':     [null,null,-0.5,8,false,false,'real',   -5, 5],
+  'log(x)':     [0,  5,  -4, 2.5, true, false,'bounded'],
+  'abs(x)':     [null,null,-0.5,8,false,false,'real',   -8, 8],
+  'floor(x)':   [null,null,-5, 5,  false,false,'real',  -6, 6],
+  'sin(1/x)':   [0,  1.5,-1.5,1.5,true, false,'bounded'],
+  'x*sin(1/x)': [0,  1.5,-1,  1,  true, false,'bounded']
+};
+
+function setPreset(val, btn) {
+  document.getElementById('funcInput').value = val;
+  document.querySelectorAll('.pbtn').forEach(function(b){b.classList.remove('active');});
+  if(btn) btn.classList.add('active');
+  var p = PRESETS[val];
+  if (p) {
+    var xn=p[0],xx=p[1],yn=p[2],yx=p[3],lo=p[4],ro=p[5],mode=p[6],vxn=p[7],vxx=p[8];
+    document.getElementById('yminIn').value = yn;
+    document.getElementById('ymaxIn').value = yx;
+    if (mode==='real') {
+      document.getElementById('vxminIn').value = vxn!==undefined?vxn:-10;
+      document.getElementById('vxmaxIn').value = vxx!==undefined?vxx:10;
+      setDomainMode('real');
+    } else {
+      document.getElementById('xminIn').value = xn;
+      document.getElementById('xmaxIn').value = xx;
+      leftOpen=lo; rightOpen=ro;
+      updateBracketUI();
+      setDomainMode('bounded');
+    }
+    document.getElementById('sx0').value = 500;
+  }
+  compile();
+}
+
+function compile() {
+  var expr = (document.getElementById('funcInput').value||'').trim();
+  var err  = document.getElementById('error');
+  if (!expr) { if(err) err.textContent=''; compiledFn=null; return; }
+  try {
+    compiledFn = math.compile(expr);
+    safeEval(1);
+    if(err) err.textContent='';
+    render();
+  } catch(e) {
+    if(err) err.textContent = '파싱 오류: '+e.message.split('\n')[0];
+    compiledFn = null;
+  }
+}
+
+function delayedRender() {
+  if(!isRealMode()) updateIntervalHint();
+  clearTimeout(window._dr);
+  window._dr = setTimeout(render, 180);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('funcInput').addEventListener('input', function(){
+    document.querySelectorAll('.pbtn').forEach(function(b){b.classList.remove('active');});
+    clearTimeout(window._db);
+    window._db = setTimeout(compile, 350);
+  });
+  window.addEventListener('resize', function(){
+    clearTimeout(window._rs);
+    window._rs = setTimeout(render, 100);
+  });
+  updateBracketUI();
+  compile();
+});
+</script>
+</body>
+</html>
