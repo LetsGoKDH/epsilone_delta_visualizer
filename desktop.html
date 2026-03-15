@@ -559,7 +559,8 @@ function computeDelta(x0, eps, vr) {
   if (y0 === null) return 0;
   const real = isRealMode();
   const hasInf = leftInf || rightInf;
-  const scanSpan = (real || hasInf) ? Math.max(vr.xMax-vr.xMin,1)*10 : Math.max(vr.xMax-vr.xMin,1);
+  const baseScan = (real || hasInf) ? Math.max(Math.abs(x0)*2, 10) : (vr.xMax-vr.xMin);
+  const scanSpan = Math.min(baseScan, 100);
   const step = scanSpan/500;
   const domMin = (real || leftInf) ? -1e12 : vr.xMin;
   const domMax = (real || rightInf) ?  1e12 : vr.xMax;
