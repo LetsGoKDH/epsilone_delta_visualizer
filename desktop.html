@@ -62,6 +62,19 @@ header{padding:18px 24px 14px;border-bottom:1px solid var(--border);display:flex
 .yrange-row{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:9px}
 .view-sep{font-family:var(--mono);font-size:10px;color:var(--text3);margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
 .view-range-row{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px}
+/* global delta */
+.global-delta-label{font-family:var(--mono);font-size:10px;color:var(--teal);margin-top:3px}
+/* global delta */
+.global-delta-label{font-family:var(--mono);font-size:10px;color:var(--teal);margin-top:3px}
+/* global delta */
+.global-delta-label{font-family:var(--mono);font-size:10px;color:var(--teal);margin-top:3px}
+/* global delta */
+.global-delta-label{font-family:var(--mono);font-size:10px;color:var(--teal);margin-top:3px}
+/* infinity toggle */
+.inf-toggle{display:flex;align-items:center;gap:4px;margin-top:4px}
+.inf-toggle input[type=checkbox]{width:14px;height:14px;cursor:pointer;accent-color:var(--purple)}
+.inf-toggle label{font-family:var(--mono);font-size:10px;color:var(--text3);cursor:pointer;user-select:none}
+.inf-symbol{font-size:13px;font-weight:500}
 /* sliders */
 .slider-block{display:flex;flex-direction:column;gap:12px}
 .slider-row{display:flex;flex-direction:column;gap:7px}
@@ -149,10 +162,31 @@ canvas#graph{display:block;width:100%;height:100%;position:absolute;top:0;left:0
         <div class="interval-wrap">
           <button class="brk-btn closed" id="btnLeft"  onclick="toggleLeft()">[</button>
           <div class="range-pair">
-            <div class="range-item"><label>x min</label><input id="xminIn" type="number" value="0.1" step="0.5" oninput="delayedRender()"></div>
-            <div class="range-item"><label>x max</label><input id="xmaxIn" type="number" value="4"   step="0.5" oninput="delayedRender()"></div>
+            <div class="range-item">
+              <label>x min</label>
+              <input id="xminIn" type="number" value="0.1" step="0.5" oninput="delayedRender()">
+              <div class="inf-toggle">
+                <input type="checkbox" id="leftInfCheck" onchange="toggleLeftInf()">
+                <label for="leftInfCheck"><span class="inf-symbol">−∞</span></label>
+              </div>
+            </div>
+            <div class="range-item">
+              <label>x max</label>
+              <input id="xmaxIn" type="number" value="4" step="0.5" oninput="delayedRender()">
+              <div class="inf-toggle">
+                <input type="checkbox" id="rightInfCheck" onchange="toggleRightInf()">
+                <label for="rightInfCheck"><span class="inf-symbol">+∞</span></label>
+              </div>
+            </div>
           </div>
           <button class="brk-btn closed" id="btnRight" onclick="toggleRight()">]</button>
+        </div>
+        <div id="infViewControls" style="display:none">
+          <div class="view-sep">그래프 보기 범위 (x)</div>
+          <div class="view-range-row">
+            <div class="range-item"><label>view min</label><input id="infVxminIn" type="number" value="-10" step="1" oninput="delayedRender()"></div>
+            <div class="range-item"><label>view max</label><input id="infVxmaxIn" type="number" value="10" step="1" oninput="delayedRender()"></div>
+          </div>
         </div>
         <div class="interval-hint" id="intervalHint">구간: [0.1, 4]</div>
       </div>
@@ -177,6 +211,10 @@ canvas#graph{display:block;width:100%;height:100%;position:absolute;top:0;left:0
         <div class="range-item"><label>y min</label><input id="yminIn" type="number" value="-1" step="1" oninput="delayedRender()"></div>
         <div class="range-item"><label>y max</label><input id="ymaxIn" type="number" value="8"  step="1" oninput="delayedRender()"></div>
       </div>
+      <button class="pbtn" style="margin-top:6px;width:100%" onclick="applyAutoYRange();render()">y 범위 자동 조정</button>
+      <button class="pbtn" style="margin-top:6px;width:100%" onclick="applyAutoYRange();render()">y 범위 자동 조정</button>
+      <button class="pbtn" style="margin-top:6px;width:100%" onclick="applyAutoYRange();render()">y 범위 자동 조정</button>
+      <button class="pbtn" style="margin-top:6px;width:100%" onclick="applyAutoYRange();render()">y 범위 자동 조정</button>
     </div>
 
     <div>
@@ -230,7 +268,8 @@ canvas#graph{display:block;width:100%;height:100%;position:absolute;top:0;left:0
     <div class="legend">
       <div class="leg-item"><span class="leg-swatch" style="background:rgba(155,143,232,0.6)"></span>f(x)</div>
       <div class="leg-item"><span class="leg-swatch" style="background:rgba(91,164,232,0.22);border-color:rgba(91,164,232,0.5)"></span>ε 범위</div>
-      <div class="leg-item"><span class="leg-swatch" style="background:rgba(232,122,91,0.22);border-color:rgba(232,122,91,0.5)"></span>δ 범위</div>
+      <div class="leg-item"><span class="leg-swatch" style="background:rgba(232,122,91,0.22);border-color:rgba(232,122,91,0.5)"></span>δ(x₀)</div>
+      <div class="leg-item"><span class="leg-swatch" style="background:rgba(78,201,160,0.15);border-color:rgba(78,201,160,0.5)"></span>전역 δ_min</div>
     </div>
   </div>
 </div>
@@ -241,6 +280,7 @@ const ctx    = canvas.getContext('2d');
 const DPR    = window.devicePixelRatio || 1;
 let compiledFn = null;
 let leftOpen = false, rightOpen = false;
+let leftInf = false, rightInf = false;
 let domainMode = 'bounded';
 const ML=54, MR=18, MT=18, MB=32;
 
@@ -263,6 +303,44 @@ function setDomainMode(mode) {
   render();
 }
 function isRealMode(){ return domainMode==='real'; }
+/* ─── infinity toggles ─── */
+function toggleLeftInf() {
+  leftInf = document.getElementById('leftInfCheck').checked;
+  document.getElementById('xminIn').disabled = leftInf;
+  if (leftInf) {
+    leftOpen = true;
+    document.getElementById('btnLeft').disabled = true;
+  } else {
+    document.getElementById('btnLeft').disabled = false;
+  }
+  updateInfViewControls();
+  updateBracketUI();
+  render();
+}
+
+function toggleRightInf() {
+  rightInf = document.getElementById('rightInfCheck').checked;
+  document.getElementById('xmaxIn').disabled = rightInf;
+  if (rightInf) {
+    rightOpen = true;
+    document.getElementById('btnRight').disabled = true;
+  } else {
+    document.getElementById('btnRight').disabled = false;
+  }
+  updateInfViewControls();
+  updateBracketUI();
+  render();
+}
+
+function updateInfViewControls() {
+  const infView = document.getElementById('infViewControls');
+  if (leftInf || rightInf) {
+    infView.style.display = '';
+  } else {
+    infView.style.display = 'none';
+  }
+}
+
 
 /* ─── safe DOM read ─── */
 function numVal(id, fallback) {
@@ -278,9 +356,25 @@ function getViewRange() {
     xMin: numVal('vxminIn',-10), xMax: numVal('vxmaxIn',10),
     yMin: numVal('yminIn', -8),  yMax: numVal('ymaxIn',  8),
   };
+
+  let xMin, xMax;
+  if (leftInf && rightInf) {
+    xMin = numVal('infVxminIn', -10);
+    xMax = numVal('infVxmaxIn', 10);
+  } else if (leftInf) {
+    xMin = numVal('infVxminIn', -10);
+    xMax = numVal('xmaxIn', 4);
+  } else if (rightInf) {
+    xMin = numVal('xminIn', 0.1);
+    xMax = numVal('infVxmaxIn', 10);
+  } else {
+    xMin = numVal('xminIn', 0);
+    xMax = numVal('xmaxIn', 4);
+  }
+
   return {
-    xMin: numVal('xminIn', 0),  xMax: numVal('xmaxIn', 4),
-    yMin: numVal('yminIn',-1),  yMax: numVal('ymaxIn',  8),
+    xMin: xMin, xMax: xMax,
+    yMin: numVal('yminIn',-1), yMax: numVal('ymaxIn', 8),
   };
 }
 
@@ -294,6 +388,162 @@ function getX0(vr) {
     if (rightOpen) hi -= m;
   }
   return lo + t*(hi-lo);
+}
+
+
+/* ─── auto y-range calculation ─── */
+function calculateAutoYRange(vr) {
+  const samples = 200;
+  const step = (vr.xMax - vr.xMin) / samples;
+  let yMin = Infinity, yMax = -Infinity;
+  let validCount = 0;
+
+  for (let i = 0; i <= samples; i++) {
+    const x = vr.xMin + i * step;
+    const y = safeEval(x);
+    if (y !== null && isFinite(y)) {
+      yMin = Math.min(yMin, y);
+      yMax = Math.max(yMax, y);
+      validCount++;
+    }
+  }
+
+  if (validCount === 0 || !isFinite(yMin) || !isFinite(yMax)) {
+    return { yMin: -5, yMax: 5 };
+  }
+
+  // Add 20% padding
+  const range = yMax - yMin;
+  const padding = Math.max(range * 0.2, 0.5);
+
+  return {
+    yMin: Math.floor((yMin - padding) * 10) / 10,
+    yMax: Math.ceil((yMax + padding) * 10) / 10
+  };
+}
+
+function applyAutoYRange() {
+  const vr = getViewRange();
+  const auto = calculateAutoYRange(vr);
+  document.getElementById('yminIn').value = auto.yMin;
+  document.getElementById('ymaxIn').value = auto.yMax;
+}
+
+
+/* ─── auto y-range calculation ─── */
+function calculateAutoYRange(vr) {
+  const samples = 200;
+  const step = (vr.xMax - vr.xMin) / samples;
+  let yMin = Infinity, yMax = -Infinity;
+  let validCount = 0;
+
+  for (let i = 0; i <= samples; i++) {
+    const x = vr.xMin + i * step;
+    const y = safeEval(x);
+    if (y !== null && isFinite(y)) {
+      yMin = Math.min(yMin, y);
+      yMax = Math.max(yMax, y);
+      validCount++;
+    }
+  }
+
+  if (validCount === 0 || !isFinite(yMin) || !isFinite(yMax)) {
+    return { yMin: -5, yMax: 5 };
+  }
+
+  // Add 20% padding
+  const range = yMax - yMin;
+  const padding = Math.max(range * 0.2, 0.5);
+
+  return {
+    yMin: Math.floor((yMin - padding) * 10) / 10,
+    yMax: Math.ceil((yMax + padding) * 10) / 10
+  };
+}
+
+function applyAutoYRange() {
+  const vr = getViewRange();
+  const auto = calculateAutoYRange(vr);
+  document.getElementById('yminIn').value = auto.yMin;
+  document.getElementById('ymaxIn').value = auto.yMax;
+}
+
+
+/* ─── auto y-range calculation ─── */
+function calculateAutoYRange(vr) {
+  const samples = 200;
+  const step = (vr.xMax - vr.xMin) / samples;
+  let yMin = Infinity, yMax = -Infinity;
+  let validCount = 0;
+
+  for (let i = 0; i <= samples; i++) {
+    const x = vr.xMin + i * step;
+    const y = safeEval(x);
+    if (y !== null && isFinite(y)) {
+      yMin = Math.min(yMin, y);
+      yMax = Math.max(yMax, y);
+      validCount++;
+    }
+  }
+
+  if (validCount === 0 || !isFinite(yMin) || !isFinite(yMax)) {
+    return { yMin: -5, yMax: 5 };
+  }
+
+  // Add 20% padding
+  const range = yMax - yMin;
+  const padding = Math.max(range * 0.2, 0.5);
+
+  return {
+    yMin: Math.floor((yMin - padding) * 10) / 10,
+    yMax: Math.ceil((yMax + padding) * 10) / 10
+  };
+}
+
+function applyAutoYRange() {
+  const vr = getViewRange();
+  const auto = calculateAutoYRange(vr);
+  document.getElementById('yminIn').value = auto.yMin;
+  document.getElementById('ymaxIn').value = auto.yMax;
+}
+
+
+/* ─── auto y-range calculation ─── */
+function calculateAutoYRange(vr) {
+  const samples = 200;
+  const step = (vr.xMax - vr.xMin) / samples;
+  let yMin = Infinity, yMax = -Infinity;
+  let validCount = 0;
+
+  for (let i = 0; i <= samples; i++) {
+    const x = vr.xMin + i * step;
+    const y = safeEval(x);
+    if (y !== null && isFinite(y)) {
+      yMin = Math.min(yMin, y);
+      yMax = Math.max(yMax, y);
+      validCount++;
+    }
+  }
+
+  if (validCount === 0 || !isFinite(yMin) || !isFinite(yMax)) {
+    return { yMin: -5, yMax: 5 };
+  }
+
+  // Add 20% padding
+  const range = yMax - yMin;
+  const padding = Math.max(range * 0.2, 0.5);
+
+  return {
+    yMin: Math.floor((yMin - padding) * 10) / 10,
+    yMax: Math.ceil((yMax + padding) * 10) / 10
+  };
+}
+
+function applyAutoYRange() {
+  const vr = getViewRange();
+  const auto = calculateAutoYRange(vr);
+  document.getElementById('yminIn').value = auto.yMin;
+  document.getElementById('ymaxIn').value = auto.yMax;
 }
 
 function getEps() {
@@ -311,10 +561,11 @@ function computeDelta(x0, eps, vr) {
   const y0 = safeEval(x0);
   if (y0 === null) return 0;
   const real = isRealMode();
-  const scanSpan = real ? Math.max(vr.xMax-vr.xMin,1)*10 : Math.max(vr.xMax-vr.xMin,1);
+  const hasInf = leftInf || rightInf;
+  const scanSpan = (real || hasInf) ? Math.max(vr.xMax-vr.xMin,1)*10 : Math.max(vr.xMax-vr.xMin,1);
   const step = scanSpan/500;
-  const domMin = real ? -1e12 : vr.xMin;
-  const domMax = real ?  1e12 : vr.xMax;
+  const domMin = (real || leftInf) ? -1e12 : vr.xMin;
+  const domMax = (real || rightInf) ?  1e12 : vr.xMax;
   let dR = scanSpan, dL = scanSpan;
   for (let i=1; i<=500; i++) {
     const xr = x0+i*step;
@@ -333,8 +584,8 @@ function computeDelta(x0, eps, vr) {
 
 /* ─── continuity check (lean: 200 steps, 25 bisect iters) ─── */
 function checkContinuity(vr) {
-  const lo = isRealMode() ? false : leftOpen;
-  const ro = isRealMode() ? false : rightOpen;
+  const lo = isRealMode() ? false : (leftOpen || leftInf);
+  const ro = isRealMode() ? false : (rightOpen || rightInf);
   const N = 200;
   const step = (vr.xMax-vr.xMin)/N;
   const discos = [];
@@ -380,8 +631,8 @@ function checkContinuity(vr) {
 
 /* ─── global δ_min (lean: 40 uniform + a few boundary/log samples) ─── */
 function computeGlobalDeltaMin(eps, vr) {
-  const lo = isRealMode() ? false : leftOpen;
-  const ro = isRealMode() ? false : rightOpen;
+  const lo = isRealMode() ? false : (leftOpen || leftInf);
+  const ro = isRealMode() ? false : (rightOpen || rightInf);
   const span = vr.xMax-vr.xMin;
   const margin = span*0.004;
   const pts = [];
@@ -413,8 +664,8 @@ function computeGlobalDeltaMin(eps, vr) {
 }
 
 /* ─── interval UI ─── */
-function toggleLeft()  { leftOpen=!leftOpen;  updateBracketUI(); render(); }
-function toggleRight() { rightOpen=!rightOpen; updateBracketUI(); render(); }
+function toggleLeft()  { if (!leftInf) { leftOpen=!leftOpen;  updateBracketUI(); render(); } }
+function toggleRight() { if (!rightInf) { rightOpen=!rightOpen; updateBracketUI(); render(); } }
 function updateBracketUI() {
   if (isRealMode()) return;
   const bL=document.getElementById('btnLeft'), bR=document.getElementById('btnRight');
@@ -427,7 +678,14 @@ function updateIntervalHint() {
   const el=document.getElementById('intervalHint');
   if (!el) return;
   const vr=getViewRange();
-  el.textContent='구간: '+(leftOpen?'(':'[')+vr.xMin+', '+vr.xMax+(rightOpen?')':']');
+  const leftStr = leftInf ? '−∞' : vr.xMin;
+  const rightStr = rightInf ? '+∞' : vr.xMax;
+  const leftBracket = (leftOpen || leftInf) ? '(' : '[';
+  const rightBracket = (rightOpen || rightInf) ? ')' : ']';
+  el.textContent='구간: '+leftBracket+leftStr+', '+rightStr+rightBracket;
+  if (leftInf || rightInf) {
+    el.textContent += ' (보기: ['+vr.xMin+', '+vr.xMax+'])';
+  }
 }
 
 /* ─── verdict (deferred so it never blocks render) ─── */
@@ -462,8 +720,8 @@ function runVerdict() {
 
   setCard('vCont','vc-ok','\u2705 연속 \u2014 주어진 범위에서 f가 연속입니다.');
 
-  if (!isRealMode() && !leftOpen && !rightOpen) {
-    setCard('vUni','vc-ok','\u2705 균등연속 \u2014 닫힌 유계 구간의 연속함수는 균등연속. <em>(Heine-Cantor 정리)</em>');
+  if (!isRealMode() && !leftOpen && !rightOpen && !leftInf && !rightInf) {
+    setCard('vUni','vc-ok','\u2705 균등연속 \u2014 닫힌 유계 구간의 연속함수는 균등연속입니다. <br><em>Heine-Cantor 정리:</em> 닫힌 유계 구간에서 연속인 함수는 자동으로 균등연속이므로, 단일 \u03b4가 전 구간에서 작동합니다.');
     if(vdmin) vdmin.textContent='Heine-Cantor'; return;
   }
 
@@ -478,7 +736,7 @@ function runVerdict() {
   const scope = isRealMode() ? ' <em>(\u211d 전체 광역 탐색)</em>' : '';
 
   if (ratio>2e-3) {
-    setCard('vUni','vc-ok','\u2705 균등연속으로 보임 \u2014 \u03b4_min \u2248 '+fmt+'. 단일 \u03b4가 전 구간에서 작동합니다.'+scope);
+    setCard('vUni','vc-ok','\u2705 균등연속으로 보임 \u2014 전역 \u03b4_min \u2248 '+fmt+'. <br><em>설명:</em> x\u2080를 움직이면 \u03b4(x\u2080)는 변하지만, 최소값 \u03b4_min이 모든 점에서 작동하므로 균등연속입니다. (그래프의 초록색 범위)'+scope);
   } else if (ratio>1e-8) {
     setCard('vUni','vc-warn','\u26a1 경계/무한대 방향에서 \u03b4_min \u2248 '+fmt+'. \u03b5을 더 줄여보거나 범위를 넓혀 확인하세요.'+scope);
   } else {
@@ -584,6 +842,70 @@ function render() {
     if(y0+eps<=vr.yMax){ctx.beginPath();ctx.moveTo(ML,ty(y0+eps,vr,H));ctx.lineTo(W-MR,ty(y0+eps,vr,H));ctx.stroke();}
     if(y0-eps>=vr.yMin){ctx.beginPath();ctx.moveTo(ML,ty(y0-eps,vr,H));ctx.lineTo(W-MR,ty(y0-eps,vr,H));ctx.stroke();}
     ctx.setLineDash([]);
+    // Draw global delta_min first (if uniform continuous)
+    const globalDmin = computeGlobalDeltaMin(eps, vr);
+    if (globalDmin > 0 && y0 !== null) {
+      const gxL = tx(Math.max(x0 - globalDmin, vr.xMin), vr, W);
+      const gxR = tx(Math.min(x0 + globalDmin, vr.xMax), vr, W);
+      ctx.fillStyle = 'rgba(78,201,160,0.08)';
+      ctx.fillRect(gxL, MT, gxR - gxL, H - MT - MB);
+      ctx.strokeStyle = 'rgba(78,201,160,0.5)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3, 3]);
+      ctx.beginPath(); ctx.moveTo(gxL, MT); ctx.lineTo(gxL, H - MB); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(gxR, MT); ctx.lineTo(gxR, H - MB); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // Then draw current delta(x0) on top
+    // Draw global delta_min first (if uniform continuous)
+    const globalDmin = computeGlobalDeltaMin(eps, vr);
+    if (globalDmin > 0 && y0 !== null) {
+      const gxL = tx(Math.max(x0 - globalDmin, vr.xMin), vr, W);
+      const gxR = tx(Math.min(x0 + globalDmin, vr.xMax), vr, W);
+      ctx.fillStyle = 'rgba(78,201,160,0.08)';
+      ctx.fillRect(gxL, MT, gxR - gxL, H - MT - MB);
+      ctx.strokeStyle = 'rgba(78,201,160,0.5)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3, 3]);
+      ctx.beginPath(); ctx.moveTo(gxL, MT); ctx.lineTo(gxL, H - MB); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(gxR, MT); ctx.lineTo(gxR, H - MB); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // Then draw current delta(x0) on top
+    // Draw global delta_min first (if uniform continuous)
+    const globalDmin = computeGlobalDeltaMin(eps, vr);
+    if (globalDmin > 0 && y0 !== null) {
+      const gxL = tx(Math.max(x0 - globalDmin, vr.xMin), vr, W);
+      const gxR = tx(Math.min(x0 + globalDmin, vr.xMax), vr, W);
+      ctx.fillStyle = 'rgba(78,201,160,0.08)';
+      ctx.fillRect(gxL, MT, gxR - gxL, H - MT - MB);
+      ctx.strokeStyle = 'rgba(78,201,160,0.5)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3, 3]);
+      ctx.beginPath(); ctx.moveTo(gxL, MT); ctx.lineTo(gxL, H - MB); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(gxR, MT); ctx.lineTo(gxR, H - MB); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // Then draw current delta(x0) on top
+    // Draw global delta_min first (if uniform continuous)
+    const globalDmin = computeGlobalDeltaMin(eps, vr);
+    if (globalDmin > 0 && y0 !== null) {
+      const gxL = tx(Math.max(x0 - globalDmin, vr.xMin), vr, W);
+      const gxR = tx(Math.min(x0 + globalDmin, vr.xMax), vr, W);
+      ctx.fillStyle = 'rgba(78,201,160,0.08)';
+      ctx.fillRect(gxL, MT, gxR - gxL, H - MT - MB);
+      ctx.strokeStyle = 'rgba(78,201,160,0.5)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3, 3]);
+      ctx.beginPath(); ctx.moveTo(gxL, MT); ctx.lineTo(gxL, H - MB); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(gxR, MT); ctx.lineTo(gxR, H - MB); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // Then draw current delta(x0) on top
     if (delta>0) {
       var xL=tx(Math.max(x0-delta,vr.xMin),vr,W);
       var xR=tx(Math.min(x0+delta,vr.xMax),vr,W);
@@ -676,7 +998,16 @@ function setPreset(val, btn) {
       setDomainMode('bounded');
     }
     document.getElementById('sx0').value = 500;
+    leftInf = false; rightInf = false;
+    document.getElementById('leftInfCheck').checked = false;
+    document.getElementById('rightInfCheck').checked = false;
+    document.getElementById('xminIn').disabled = false;
+    document.getElementById('xmaxIn').disabled = false;
+    document.getElementById('btnLeft').disabled = false;
+    document.getElementById('btnRight').disabled = false;
+    updateInfViewControls();
   }
+  applyAutoYRange();
   compile();
 }
 
@@ -712,6 +1043,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window._rs = setTimeout(render, 100);
   });
   updateBracketUI();
+  updateInfViewControls();
   compile();
 });
 </script>
