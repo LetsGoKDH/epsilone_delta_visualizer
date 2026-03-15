@@ -4,9 +4,9 @@
 
 ## 접속
 
-- **자동 감지**: https://letsgokdh.github.io/epsilone_delta_visualizer/
-- **PC 접속**: https://letsgokdh.github.io/epsilone_delta_visualizer/desktop.html
-- **모바일 접속**: https://letsgokdh.github.io/epsilone_delta_visualizer/mobile.html
+- **자동 감지**: https://letsgokdh.github.io/epsilon_delta_visualizer/
+- **PC 접속**: https://letsgokdh.github.io/epsilon_delta_visualizer/desktop.html
+- **모바일 접속**: https://letsgokdh.github.io/epsilon_delta_visualizer/mobile.html
 
 ## 사용법
 
@@ -82,8 +82,8 @@
 ## 로컬 실행
 
 ```bash
-git clone https://github.com/LetsGoKDH/epsilone_delta_visualizer.git
-cd epsilone_delta_visualizer
+git clone https://github.com/LetsGoKDH/epsilon_delta_visualizer.git
+cd epsilon_delta_visualizer
 ```
 
 그냥 `index.html`을 브라우저로 열면 됩니다.
